@@ -294,7 +294,7 @@ import App from './App.vue'
 new Vue({
   el: '#app',
   router,
-  //entry point
+  //entry po
   render: h => h(App)
 })
 
@@ -303,6 +303,68 @@ new Vue({
 src/components 들에 각  URL 별로 보여질 컴포넌트들도 만든다. (Home/Login/NotFound)
 
 ## 10강 라우터 링크
+
+`<router-link>`는 라우터 지원 앱에서 사용자 내비게이션을 가능하게하는 컴포넌트이다. (뷰 라우터가 제공하는) 내비게이션을 위한 컴포넌트이다.
+
+<router-link>는 다음과 같은 이유로 하드 코드된 `<a href="...">`보다 선호된다.
+
+* HTML5 히스토리 모드와 해시 모드에서 모두 동일한 방식으로 작동하므로 모드를 트랜지션하기로 결정하거나 라우터가 IE9에서 해쉬모드로 트랜지션 한 경우 변경할 필요가 없다.
+* HTML5 히스토리 모드에서 <router-link>는 클릭 이벤트를 차단해 부라우저가 페이지를 다시 로드하지 않도록 한다.
+* ~~HTML5 히스토리 모드에서 base옵션을 사용할 때 `to` prop의 URL에 이를 포함 할 필요가 없다.~~
+
+components/NavBar.vue  컴포넌트 추가
+
+~~~javascript
+<template>
+    <div>
+         <!--
+          히스토리 모드를 쓸 때는  <a href="/">Home</a>
+          해시뱅 모드르 사용할 때는 <a href="/#/> 이처럼 라우팅 해야한다.
+          <router-link>를 쓰는 장점!
+          -->
+      <router-link to="/">Home</router-link>
+      <router-link to="/login">Login</router-link>
+    </div>
+</template>
+
+<script>
+    export default {
+    }
+</script>
+
+<style scoped>
+
+</style>
+
+~~~
+
+App.vue
+
+~~~javascript
+<template>
+  <div id="app">
+    <navbar />
+    <router-view></router-view>
+  </div>
+</template>
+
+<script>
+import navbar from './components/NavBar.vue'
+
+export default {
+  name: 'app',
+  components : { navbar },
+  data () {
+    return {
+    }
+  }
+}
+</script>
+
+<style>
+</style>
+
+~~~
 
 ## 11강 동적 라우트 매칭
 
