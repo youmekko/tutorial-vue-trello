@@ -229,6 +229,79 @@ new Vue({
 
 ## 9강 라우터 뷰
 
+main.js의 `<router-view></router-view>` 부분이 요청 URL에 따라서 화면이 바뀌는 부분이다.  그런데 이 프로젝트에서는 App.vue라는 것이 루트 컴포넌트 역할을 한다. 그래서 이 루트 컴포넌트를 기준으로 URL에 따라서 컴포넌트를 바꿔치기 해야한다. 그래서 main.js에 있는 <router-view></router-view>를 App.vue로 옮겨보자.
+
+App.vue
+
+~~~javascript
+<template>
+  <div id="app">
+    여기서부터 코드를 시작합니다.
+    <router-view></router-view>
+  </div>
+</template>
+
+<script>
+export default {
+  name: 'app',
+  data () {
+    return {
+    }
+  }
+}
+</script>
+
+<style>
+</style>
+
+~~~
+
+router/index.js
+
+~~~javascript
+import Vue from 'vue'
+import VueRouter from 'vue-router'
+import Home from '../components/Home.vue'
+import Login from '../components/Login.vue'
+import NotFound from '../components/NotFound.vue'
+
+//미들웨어
+Vue.use(VueRouter)
+
+const router = new VueRouter({
+  /*
+  브라우저에서 라우팅 할때는 해쉬뱅(Hashbang)모드라는게 동작하는데 (브라우저 히스토리 API가 없을 때 사용)
+  크롬의 경우는 history API가 있기 때문에 해시뱅 모드가 아닌 히스토리 모드를 사용하면 된다.
+  */
+  mode: 'history',
+  routes: [
+    {path: '/', component: Home},
+    {path: '/login', component: Login},
+    {path: '*', component: NotFound}
+  ]
+})
+
+export default router
+~~~
+
+main.js
+
+~~~javascript
+import Vue from 'vue'
+import router from './router'
+import App from './App.vue'
+
+new Vue({
+  el: '#app',
+  router,
+  //entry point
+  render: h => h(App)
+})
+
+~~~
+
+src/components 들에 각  URL 별로 보여질 컴포넌트들도 만든다. (Home/Login/NotFound)
+
 ## 10강 라우터 링크
 
 ## 11강 동적 라우트 매칭
