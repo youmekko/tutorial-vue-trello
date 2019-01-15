@@ -27,8 +27,8 @@
 
   |        | 생성               | 조회               | 수정                                   | 이동               | 삭제               |
   | ------ | ------------------ | ------------------ | -------------------------------------- | ------------------ | ------------------ |
-  | 보드   | <strong>O</strong> | <strong>O</strong> | O<br />(타이틀,색상)                   | X                  | O                  |
-  | 리스트 | O                  | X                  | O<br />(타이틀)                        | O                  | O                  |
+  | 보드   | <strong>O</strong> | <strong>O</strong> | <strong>O</strong><br />(타이틀,색상)  | <strong>X</strong> | <strong>O</strong> |
+  | 리스트 | <strong>O</strong> | <strong>X</strong> | <strong>O</strong><br />(타이틀)       | <strong>O</strong> | <strong>O</strong> |
   | 카드   | <strong>O</strong> | <strong>O</strong> | <strong>O</strong><br />(타이틀, 설명) | <strong>O</strong> | <strong>O</strong> |
 
 * 기본 플로우
@@ -179,6 +179,53 @@ const router = new VueRouter({
 
 main.js 안에 라우팅 로직이 많이 들어있으므로 라우팅 로직만 따로 분리해보자.
 src 디렉토리 아래 router 디렉토리를 만들고 index.js 파일을 만든다.
+(index.js말고도 더 많은 서브 라우터를 만들 수 있다.)
+
+router/index.js
+
+~~~javascript
+import Vue from 'vue'
+import VueRouter from 'vue-router'
+import App from '../App.vue'
+
+//미들웨어
+Vue.use(VueRouter)
+
+const Login = {template: '<div>Login Page</div>'}
+const NotFound = {template: '<div>Page not found</div>'}
+
+
+const router = new VueRouter({
+  /*
+  브라우저에서 라우팅 할때는 해쉬뱅(Hashbang)모드라는게 동작하는데 (브라우저 히스토리 API가 없을 때 사용)
+  크롬의 경우는 history API가 있기 때문에 해시뱅 모드가 아닌 히스토리 모드를 사용하면 된다.
+  */
+  mode: 'history',
+  routes: [
+    {path: '/', component: App},
+    {path: '/login', component: Login},
+    {path: '*', component: NotFound}
+  ]
+})
+
+export default router
+
+~~~
+
+main.js
+
+~~~javascript
+import Vue from 'vue'
+import router from './router'
+
+
+new Vue({
+  el: '#app',
+  router,
+  render: h => h({template: '<router-view></router-view>'})
+})
+
+~~~
 
 ## 9강 라우터 뷰
 
