@@ -370,7 +370,190 @@ export default {
 
 우리가 router를 설정할 때 Vue.use라는 함수를 통해서 VueRouter를 미들웨어로 추가했다. 그렇기  때문에 Vue를 통해서 만든 vue 인스턴스는 $route라는 변수를 통해서 라우터 정보에 접근할 수 있다. 
 
+index.js
+
+~~~javascript
+import Vue from 'vue'
+import VueRouter from 'vue-router'
+import Home from '../components/Home.vue'
+import Login from '../components/Login.vue'
+import NotFound from '../components/NotFound.vue'
+import Board from '../components/Board.vue'
+
+//미들웨어
+Vue.use(VueRouter)
+
+const router = new VueRouter({
+  /*
+  브라우저에서 라우팅 할때는 해쉬뱅(Hashbang)모드라는게 동작하는데 (브라우저 히스토리 API가 없을 때 사용)
+  크롬의 경우는 history API가 있기 때문에 해시뱅 모드가 아닌 히스토리 모드를 사용하면 된다.
+  */
+  mode: 'history',
+  routes: [
+    {path: '/', component: Home},
+    {path: '/login', component: Login},
+    {path: '/b/:bid', component: Board},
+    {path: '*', component: NotFound}
+  ]
+})
+
+export default router
+
+~~~
+
+Board.vue
+
+~~~javascript
+<template>
+    <div>
+      Board
+      <div>bid: {{ bid }}</div>
+    </div>
+</template>
+
+<script>
+    export default {
+
+      data(){
+        return {
+            bid: 0
+        }
+      },
+
+      //Board가 생성될 때 실행되는 훅이 Create
+      created(){
+        //$route 객체 로그로 찍어보자
+        console.log("@@@route", this.$route);
+        console.log("@@@bid", this.$route.params.bid);
+
+        //로그에서 확인할 수 있는 것처럼 this.$route 객체를 통해서 라우팅 정보를 받아낼 수 있다.
+        this.bid = this.$route.params.bid;
+      }
+    }
+</script>
+
+<style scoped>
+
+</style>
+
+~~~
+
+
+
 ## 12강 중첩 라우트
+
+Card.vue
+
+~~~javascript
+<template>
+  <div>
+    Card
+    <div>cid: {{cid}}</div>
+  </div>
+</template>
+
+<script>
+  export default {
+    data(){
+      return {
+        cid: 0
+      }
+    },
+    watch:{
+      '$route'() {
+        this.cid = this.$route.params.cid;
+      }
+    },
+    created(){
+      this.cid = this.$route.params.cid;
+    }
+  }
+</script>
+
+<style scoped>
+
+</style>
+
+~~~
+
+index.js
+
+~~~javascript
+import Vue from 'vue'
+import VueRouter from 'vue-router'
+import Home from '../components/Home.vue'
+import Login from '../components/Login.vue'
+import NotFound from '../components/NotFound.vue'
+import Board from '../components/Board.vue'
+import Card from '../components/Card.vue'
+
+//미들웨어
+Vue.use(VueRouter)
+
+const router = new VueRouter({
+  /*
+  브라우저에서 라우팅 할때는 해쉬뱅(Hashbang)모드라는게 동작하는데 (브라우저 히스토리 API가 없을 때 사용)
+  크롬의 경우는 history API가 있기 때문에 해시뱅 모드가 아닌 히스토리 모드를 사용하면 된다.
+  */
+  mode: 'history',
+  routes: [
+    {path: '/', component: Home},
+    {path: '/login', component: Login},
+    {path: '/b/:bid', component: Board, children:[
+        {path: '/c/:cid', component: Card}
+      ]},
+    {path: '*', component: NotFound}
+  ]
+})
+
+export default router
+
+~~~
+
+
+
+중첩 라우터를 사용하는 이유는 보드에서 카드를 선택해서 들어갈때 보드는 백그라운드에 깔려있고 카드 내용은 보드 위에 팝업으로 띄워졌기 때문이다.
+
+Board.vue
+
+~~~javascript
+<template>
+    <div>
+      Board
+      <div>bid: {{ bid }}</div>
+      <router-link :to="`/b/${bid}/c/1`">Card1</router-link>
+      <router-link :to="`/b/${bid}/c/2`">Card2</router-link>
+      <hr/>
+      <router-view></router-view>
+    </div>
+</template>
+
+<script>
+    export default {
+
+      data(){
+        return {
+            bid: 0
+        }
+      },
+
+      //Board가 생성될 때 실행되는 훅이 Create
+      created(){
+        //$route 객체 로그로 찍어보자
+        console.log("@@@route", this.$route);
+        console.log("@@@bid", this.$route.params.bid);
+
+        //로그에서 확인할 수 있는 것처럼 this.$route 객체를 통해서 라우팅 정보를 받아낼 수 있다.
+        this.bid = this.$route.params.bid;
+      }
+    }
+</script>
+
+<style scoped>
+
+</style>
+
+~~~
 
 
 
