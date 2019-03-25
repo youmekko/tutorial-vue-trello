@@ -678,7 +678,95 @@ Card.vue
 
 ## 14강 백엔드 API 살펴보기
 
-## 15강 Ajax - HttpXMLRequest 객체
+spa에서는 데이터를 백엔드 서버로부터 가지고 온다. 서버의 역할은 데이터 베이스에 있는 데이터를 클라이언트에게 제공하는 것이다. htpp프로토콜을 이용한 api형태로 데이터를 제공한다.
+
+이 예제에서는 `http://github.com/jeonghwan-kim/lecture-vue-trello-sever.git` 을 clone해 진행한다.
+
+해당 repository를 clone을 npm intstall하고 `npm run dev` 로 서버를 구동하면 API Document를 확인할 수 있다. 
+
+`curl localhost:3000/health` 등 명령어를 그대로 복사해 터미널에 입력하면 데이터를 얻어 올수 있고 -v 옵션을 줄 시 더 디테일한 정보를 얻어 올 수 있는데 화살표가 오른쪽으로 `>` 되어있는 것은 request 정보고 왼쪽 `<` 으로 되어 있는 것은 response 정보다.
+
+_추가로 homebrew를 통해 jq(Litteweight and flexible command-line JSON processor)도 설치해보자_
+
+
+
+## 15강 Ajax - XMLHttpRequest 객체
+
+이전 강의에서는 api를 호출할 때 터미널 도구인 curl을 이용해 데이터를 요청했다.  그런데 trello 서비스에서 api를 쓰려면, 즉 브라우저단에서 api를 호출하려면 Javascript를 이용해 호출해야한다.
+
+Javascript에는 XMLHttpRequeset라는 객체가 있는데 이것이 바로 http호출을 만들때 사용하는 객체이다. 이것을 이용해 Api를 호출해보자.
+
+Home.vue
+
+~~~javascript
+<template>
+  <div>
+    <div>Home</div>
+    <div>
+      Board List :
+      <div v-if="loading">Loading....</div>
+      <div v-else>
+        API result : {{apiRes}}
+      </div>
+      <ul>
+        <li>
+          <router-link to="/b/1">Board 1</router-link>
+        </li>
+        <li>
+          <router-link to="/b/2">Board 2</router-link>
+        </li>
+      </ul>
+    </div>
+  </div>
+</template>
+
+<script>
+  export default {
+    data() {
+      return {
+        loading: false,
+        apiRes: ''
+      }
+    },
+    created() {
+      this.fetchData();
+    },
+    methods: {
+      fetchData() {
+        this.loading = true;
+
+        const req = new XMLHttpRequest();
+
+        //@Param (method, address)
+        req.open('GET', 'http://localhost:3000/health')
+
+        //클라이언트에서 백엔드 서버로 요청을 날라간다.
+        req.send();
+
+        //요청이 완료되면 load 라는 이벤트가 발생한다.
+        req.addEventListener('load', () => {
+          this.loading = false;
+          this.apiRes = {
+            status: req.status,
+            statusText: req.statusText,
+            response: JSON.parse(req.response)
+          }
+        })
+      }
+    }
+  }
+</script>
+
+<style scoped>
+
+</style>
+~~~
+
+요청이 잘 갔는지 확인하려면 chrom 개발자 도구에서 Network 탭을 열고  XHR(XMLHttpRequest)로 필터를 걸고 보면 된다.
+
+이번 강의에서는 순수 브라우저 Api 만 이용해서  http콜을 날려봤다. 보통은 브라우저별로 XHR객체가 지원되지 않을 수도 있다. 그래서 보통 Jquery의 ajax 함수 등을 사용한다. 라이브러리를 사용하면 조금 더 단순하게 http 콜을 만들 수 있다는 장점이 있다. 다음 강의에서는 vuejs에서 가장 많이 사용하는 axios라는 http라이브러리를 소개한다.
+
+
 
 ## 16강 Axios
 
