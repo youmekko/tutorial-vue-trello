@@ -784,6 +784,23 @@ Axios는 Promise 기반의 Http 클라이언트다. 브라우저에서도 쓸 �
 
 설치 `npm install axios`
 
+home.vue
+
+~~~javascript
+fetchData() {
+        this.loading = true;
+        axios.get('http://localhost:3000/health').then((res) => {
+          this.apiRes = res.data;
+        }).catch((err) => {
+          this.error = err.response.data;
+        }).finally(() => {
+          this.loading = false;
+        })
+      }
+~~~
+
+
+
 
 
 
