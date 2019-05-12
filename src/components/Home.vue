@@ -5,7 +5,10 @@
       Board List :
       <div v-if="loading">Loading....</div>
       <div v-else>
-        API result : {{apiRes}}
+        API result : <pre>{{apiRes}}</pre>
+      </div>
+      <div v-if="error">
+        API error : {{error}}
       </div>
       <ul>
         <li>
@@ -20,11 +23,14 @@
 </template>
 
 <script>
+  import axios from 'axios'
+
   export default {
     data() {
       return {
         loading: false,
-        apiRes: ''
+        apiRes: '',
+        error: ''
       }
     },
     created() {
@@ -34,22 +40,12 @@
       fetchData() {
         this.loading = true;
 
-        const req = new XMLHttpRequest();
-
-        //@Param (method, address)
-        req.open('GET', 'http://localhost:3000/health')
-
-        //클라이언트에서 백엔드 서버로 요청을 날라간다.
-        req.send();
-
-        //요청이 완료되면 load 라는 이벤트가 발생한다.
-        req.addEventListener('load', () => {
+        axios.get('http://localhost:3000/health').then((res) => {
+          this.apiRes = res.data;
+        }).catch((err) => {
+          this.error = err;
+        }).finally(() => {
           this.loading = false;
-          this.apiRes = {
-            status: req.status,
-            statusText: req.statusText,
-            response: JSON.parse(req.response)
-          }
         })
       }
     }
