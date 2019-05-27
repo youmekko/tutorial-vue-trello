@@ -768,7 +768,7 @@ Home.vue
 
 
 
-## 16강 Axios
+## 16강 Axios 
 
 Axios는 Promise 기반의 Http 클라이언트다. 브라우저에서도 쓸 수 있고 노드에서도 쓸 수 있다.
 
@@ -784,19 +784,237 @@ Axios는 Promise 기반의 Http 클라이언트다. 브라우저에서도 쓸 �
 
 설치 `npm install axios`
 
+
+
+## 17강 보드 조회 API 연동
+
 home.vue
 
 ~~~javascript
-fetchData() {
+<template>
+  <div>
+    <div>Home</div>
+    <div>
+      Board List :
+      <div v-if="loading">Loading....</div>
+      <div v-else>
+        <div v-for="board in boards" :key="board.id">
+          {{board}}
+        </div>
+      </div>
+      <ul>
+        <li>
+          <router-link to="/b/1">Board 1</router-link>
+        </li>
+        <li>
+          <router-link to="/b/2">Board 2</router-link>
+        </li>
+      </ul>
+    </div>
+  </div>
+</template>
+
+<script>
+  import axios from 'axios'
+
+  export default {
+    data() {
+      return {
+        loading: false,
+        boards: []
+      }
+    },
+    created() {
+      this.fetchData();
+    },
+    methods: {
+      fetchData() {
         this.loading = true;
-        axios.get('http://localhost:3000/health').then((res) => {
-          this.apiRes = res.data;
-        }).catch((err) => {
-          this.error = err.response.data;
+        axios.get('http://localhost:3000/boards').then((res) => {
+          this.boards = res.data;
+        }).catch(() => {
+          this.$router.replace('/login');
         }).finally(() => {
           this.loading = false;
         })
       }
+    }
+  }
+</script>
+
+<style scoped>
+
+</style>
+
+~~~
+
+
+
+## 18강 Axios 실전에서 사용하기
+
+aixos 같은 서드파티 라이브러를 사용할 때 하나의 팁은 라이브러리를 랩핑해서 사용하는 것이다. 위에서처럼 직접 axios를 가져다 사용하기 시작하면 코드가 많아질수록 api 요청이 필요한 부분마다 직접 라이브러를 호출하게 된다. 그렇게 되면 라이브러리에 강하게 의존하는 코드를 만들게 된다. 상황이 바뀌어서 라이브러리를 바꿀 때는 하드코딩 된 코드들을 모두 변경해야 된다. 따라서 의존적인 코드를 최소화 하기 위해서 Axios를 호출하는 모듈을 별도로 만들어주는 것이 방법이다. 
+
+/api/index.js
+
+~~~javascript
+import axios from 'axios'
+import router from '../router'
+
+const DOMAIN = 'http://localhost:3000'
+const UNAUTHORIZED = 401
+
+const onUnauthorized = () => {
+  router.push('/login')
+}
+
+const request = (method, url, data) => {
+  return axios({
+    method,
+    url: DOMAIN + url,
+    data
+  }).then((result) => {
+    result.data;
+  }).catch((result) => {
+    const {status} = result.response;
+    if (status === UNAUTHORIZED) {
+      return onUnauthorized();
+    }
+    throw Error(result)
+  })
+}
+
+export const board = {
+  fetch(){
+    return request('get', '/boards')
+  }
+}
+
+~~~
+
+Home.vue
+
+~~~javascript
+<template>
+  <div>
+    <div>Home</div>
+    <div>
+      Board List :
+      <div v-if="loading">Loading....</div>
+      <div v-else>
+        <div v-for="board in boards" :key="board.id">
+          {{board}}
+        </div>
+      </div>
+      <ul>
+        <li>
+          <router-link to="/b/1">Board 1</router-link>
+        </li>
+        <li>
+          <router-link to="/b/2">Board 2</router-link>
+        </li>
+      </ul>
+    </div>
+  </div>
+</template>
+
+<script>
+
+  import {board} from '../api'
+
+  export default {
+    data() {
+      return {
+        loading: false,
+        boards: []
+      }
+    },
+    created() {
+      this.fetchData();
+    },
+    methods: {
+      fetchData() {
+        board.fetch().then(data => {
+          this.boards = data;
+        }).finally(_=>{
+          this.loading = false;
+        })
+      }
+    }
+  }
+</script>
+
+<style scoped>
+
+</style>
+
+~~~
+
+위처럼 컴포넌트에서 axios를 호출하는 것이 아니라 api디렉토리에 있는 aixos모듈들을 사용한다.
+
+
+
+## 19강 인증 API
+
+인증 API를 어떻게 사용해야 하는지 알아보자.
+
+boardAPI를 호출할 때 토큰 정보를 추가 하게 되면... 
+
+대부분의 API 에서 사용되는 토큰 정보는 클라이언트 즉 브라우저 쪽에서 저장이 필요하다. 이 프로젝트에서는 localStorage에다 저장한다.
+
+
+
+## 20강 네비게이션 가드
+
+메인 페이지에서는 getBoards  API 결과를 확인한 뒤에 401이 뜨면 로그인 페이지로 이동 한다. 다른 페이지에서도 401응답을 받으면 로그인 페이지로 이동한다.
+
+API를 호출하기 전에 로그인 여부를 확인할 수 있는 방법을 없을까?
+
+인증을 완료하고 난 토큰 정보를 localStorage라는 브라우저 저장소에 저장하기로 한다. 그렇다면 로컬 스토리지에 있는 토큰의 유무를 통해 로그인 여부를 확인할 수 있다. 그래서 이 정보가 있으면 로그인 한것으로 간주하고 아니면 로그인 페이지로 이동하도록 변경하면 된다. 메인 페이지뿐 아니라 모든 페이지에 적용한다. 
+
+따라서 페이지로 라우팅 하기 직전에 토큰을 확인하고 있으면 라우팅 동작을 하고 없으면 로그인 페이지로 리다이렉트 하는 기능을 만들어보자.
+
+여기서 뷰라이터의 기능을 사용할 수 있는데 네이게이션 가드라는 기능이다. 이것은 라우팅 직전에 어떤 로직을 추가할 수 있는 기능이다.
+
+네이게이션 가드는 뷰 라우터의 beforeEnter라는 함수를 사용하면 된다.
+
+router/index.js
+
+~~~javascript
+import Vue from 'vue'
+import VueRouter from 'vue-router'
+import Home from '../components/Home.vue'
+import Login from '../components/Login.vue'
+import NotFound from '../components/NotFound.vue'
+import Board from '../components/Board.vue'
+import Card from '../components/Card.vue'
+
+//미들웨어
+Vue.use(VueRouter)
+
+const requireAuth = (to, from, next) => {
+  const isAuth = localStorage.getItem('token');
+  const loginPath = `/login?rPath=${encodeURIComponent(to.path)}`;
+  isAuth ? next() : next(loginPath);
+}
+
+const router = new VueRouter({
+  /*
+  브라우저에서 라우팅 할때는 해쉬뱅(Hashbang)모드라는게 동작하는데 (브라우저 히스토리 API가 없을 때 사용)
+  크롬의 경우는 history API가 있기 때문에 해시뱅 모드가 아닌 히스토리 모드를 사용하면 된다.
+  */
+  mode: 'history',
+  routes: [
+    {path: '/', component: Home, beforeEnter: requireAuth},
+    {path: '/login', component: Login},
+    {path: '/b/:bid', component: Board, beforeEnter: requireAuth, children:[
+        {path: 'c/:cid', beforeEnter: requireAuth, component: Card}
+      ]},
+    {path: '*', component: NotFound}
+  ]
+})
+
+export default router
+
 ~~~
 
 
@@ -805,9 +1023,15 @@ fetchData() {
 
 
 
-## 17강 보드 조회 API 연동
 
-## 18강 Axios 실전에서 사용하기
+
+
+
+
+
+
+
+
 
 
 
