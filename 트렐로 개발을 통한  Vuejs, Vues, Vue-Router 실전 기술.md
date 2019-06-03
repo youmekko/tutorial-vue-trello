@@ -1019,9 +1019,250 @@ export default router
 
 
 
+### 21강 로그인
+
+네이게이션 가드를 통해서 인증되지 않는 요청은 로그인 페이지까지 이동을 시켰다. 이제 본격적으로 로그인 페이지를 만들어보자.
+
+일단 App.vue에 아래의 css를 추가한다.
+
+~~~css
+html, body, #app {
+    height: 100%;
+    margin: 0;
+  }
+
+  #app {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .container {
+    flex-grow: 1;
+    position: relative;
+  }
+
+  .btn {
+    border-radius: 3px;
+    padding: 6px 8px;
+    background-color: #e2e4e6;
+    border: none;
+    display: inline-block;
+    color: #fff;
+    font-size: 14px;
+    line-height: 20px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .btn-success {
+    background-color: #5aac44;
+    box-shadow: 0 1px 0 #519839;
+  }
+
+  .form-control {
+    width: 100%;
+    box-sizing: border-box;
+    background-color: #e2e4e6;
+    border: 1px solid #cdd2d4;
+    border-radius: 3px;
+    display: block;
+    margin-bottom: 12px;
+    padding: 6px 8px;
+    transition: background-color .3s;
+  }
+
+  input[type=text].form-control,
+  input[type=passwod].form-control,
+  textarea.form-control {
+    font-size: 14px
+  }
+
+  form-control:focus {
+    background-color: #fff;
+  }
+
+~~~
+
+다음은 login.vue파일을 수정해보자.
+
+~~~javascript
+<!--suppress ALL -->
+<template>
+  <div class="login">
+    <h2>Login to Trello</h2>
+    <form @submit.prevent="onSubmit">
+      <div>
+        <label for="email">Email</label>
+        <input class="form-control" type="text" name="email"
+               v-model="email" autofocus placeholder="e.g., text@test.com">
+      </div>
+      <div>
+        <label for="password">Password</label>
+        <input class="form-control" type="text" name="passowrd"
+               v-model="password" placeholder="123123">
+      </div>
+      <button class="btn" :class="{'btn-success' : !invalidForm}" type="submit"
+      :disabled="invalidForm">Login</button>
+    </form>
+    <p class="erorr" v-if="error">{{error}}</p>
+  </div>
+</template>
+
+<script>
+  export default {
+    data() {
+      return {
+        email: '',
+        password: '',
+        error: ''
+      }
+    },
+    computed: {
+      invalidForm() {
+        return !this.email || !this.password
+      }
+    },
+    methods: {
+      onSubmit() {
+        console.log(this.email, this.password)
+      }
+    }
+  }
 
 
+</script>
 
+<style scoped>
+  .login {
+    width: 400px;
+    margin: 0 auto;
+  }
+
+  .error {
+    color: #f00;
+  }
+</style>
+
+~~~
+
+이제 남은 것은 로그인 API를 연동해보는 것이다.
+
+api/index.js
+
+~~~javascript
+import axios from 'axios'
+import router from '../router'
+
+const DOMAIN = 'http://localhost:3000'
+const UNAUTHORIZED = 401
+const onUnauthorized = () => {
+  router.push(`/login?rPath=${encodeURIComponent(location.pathname)}`)
+}
+
+const request = (method, url, data) => {
+  return axios({
+    method,
+    url: DOMAIN + url,
+    data
+  }).then(result => result.data)
+    .catch(result => {
+      const {status} = result.response
+      if (status === UNAUTHORIZED) onUnauthorized()
+      throw result.response
+    })
+}
+
+//토큰 정보를 받아서 axios안에 기능을 추가한다.
+//모든 리퀘스트를 날리기 전에 헤더 값을 토큰 정보로 설정하는 역할
+export const setAuthInHeader = token => {
+  axios.defaults.headers.common['Authorization'] = token ? `Bearer ${token}` : null;
+}
+
+const {token} = localStorage
+if (token) setAuthInHeader(token)
+
+export const board = {
+  fetch() {
+    return request('get', '/boards')
+  }
+}
+export const auth = {
+  login(email, password) {
+    return request('post', '/login', {email, password})
+  }
+}
+
+~~~
+
+Login.vue
+
+~~~javascript
+<template>
+  <div class="login">
+    <h2>Log in to Trello</h2>
+    <form @submit.prevent="onSubmit">
+      <div>
+        <label for="email">Email</label>
+        <input class="form-control" type="text" name="email"
+               v-model="email" autofocus placeholder="e.g., test@test.com" />
+      </div>
+      <div>
+        <label for="password">Passwrod</label>
+        <input class="form-control" type="password"
+               v-model="password" placeholder="123123" />
+      </div>
+      <button  class="btn" :class="{'btn-success': !invalidForm}" type="submit"
+               :disabled="invalidForm">Log In</button>
+    </form>
+    <p class="error" v-if="error">{{error}}</p>
+  </div>
+</template>
+
+<script>
+  import {auth, setAuthInHeader} from '../api'
+  export default {
+    data() {
+      return {
+        email: '',
+        password: '',
+        error: '',
+        rPath: ''
+      }
+    },
+    computed: {
+      invalidForm() {
+        return !this.email || !this.password
+      }
+    },
+    created() {
+      this.rPath = this.$route.query.rPath || '/'
+    },
+    methods: {
+      onSubmit() {
+        auth.login(this.email, this.password)
+          .then(data => {
+            localStorage.setItem('token', data.accessToken)
+            setAuthInHeader(data.accessToken)
+            this.$router.push(this.rPath)
+          })
+          .catch(err => {
+            this.error = err.data.error
+          })
+      }
+    }
+  }
+</script>
+
+<style>
+  .login {
+    width: 400px;
+    margin: 0 auto;
+  }
+  .error {
+    color: #f00;
+  }
+</style>
+~~~
 
 
 
