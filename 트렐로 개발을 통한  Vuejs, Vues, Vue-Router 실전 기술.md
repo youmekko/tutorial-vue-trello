@@ -1470,6 +1470,327 @@ Home.vue
 
 ### 24강 보드 추가하기
 
+api/index.js
+
+~~~javascript
+import axios from 'axios'
+import router from '../router'
+
+const DOMAIN = 'http://localhost:3000'
+const UNAUTHORIZED = 401
+const onUnauthorized = () => {
+  router.push(`/login?rPath=${encodeURIComponent(location.pathname)}`)
+}
+
+const request = (method, url, data) => {
+  return axios({
+    method,
+    url: DOMAIN + url,
+    data
+  }).then(result => result.data)
+    .catch(result => {
+      const {status} = result.response
+      if (status === UNAUTHORIZED) onUnauthorized()
+      throw result.response
+    })
+}
+
+//토큰 정보를 받아서 axios안에 기능을 추가한다.
+//모든 리퀘스트를 날리기 전에 헤더 값을 토큰 정보로 설정하는 역할
+export const setAuthInHeader = token => {
+  axios.defaults.headers.common['Authorization'] = token ? `Bearer ${token}` : null;
+}
+
+const {token} = localStorage
+if (token) setAuthInHeader(token)
+
+export const board = {
+  fetch() {
+    return request('get', '/boards')
+  },
+  create(title){
+    return request('post', '/boards', {title})
+  }
+}
+export const auth = {
+  login(email, password) {
+    return request('post', '/login', {email, password})
+  }
+}
+
+~~~
+
+Home.vue
+
+~~~javascript
+<template>
+  <div>
+    <div class="home-title">Personal Boards</div>
+    <div class="board-list" ref="boardList">
+      <div class="board-item" v-for="b in boards" :key="b.id"
+           :data-bgcolor="b.bgColor" ref="boardItem">
+        <router-link :to="`/b/${b.id}`">
+          <div class="board-item-title">{{b.title}}</div>
+        </router-link>
+      </div>
+      <div class="board-item board-item-new">
+        <a class="new-board-btn" href="" @click.prevent="addBoard">
+          Create new board...
+        </a>
+      </div>
+    </div>
+    <AddBoard v-if="isAddBoard" @close="isAddBoard=false" @submit="onAddBoard"/>
+  </div>
+</template>
+
+<script>
+  import {board} from '../api'
+  import AddBoard from './AddBoard'
+
+  export default {
+    components:{
+      AddBoard
+    },
+    data() {
+      return {
+        loading: false,
+        boards: [],
+        error: '',
+        isAddBoard: false
+      }
+    },
+    created() {
+      this.fetchData()
+    },
+    updated() {
+      this.$refs.boardItem.forEach(el => {
+        el.style.backgroundColor = el.dataset.bgcolor
+      })
+    },
+    methods: {
+      fetchData() {
+        this.loading = true
+        board.fetch()
+          .then(data => {
+            this.boards = data.list
+          })
+          .finally(_=> {
+            this.loading = false
+          })
+      },
+      addBoard() {
+        this.isAddBoard = true;
+      },
+      onAddBoard(title){
+        board.create(title).then(()=>{
+          this.fetchData()
+        })
+      }
+    }
+  }
+</script>
+
+<style scoped>
+  .home-title {
+    padding: 10px;
+    font-size: 18px;
+    font-weight: bold;
+  }
+  .board-list {
+    padding: 10px;
+    display: flex;
+    flex-wrap: wrap;
+  }
+  .board-item {
+    width: 23%;
+    height: 100px;
+    margin: 0 2% 20px 0;
+    border-radius: 3px;
+  }
+  .board-item-new {
+    background-color: #ddd;
+  }
+  .board-item a {
+    text-decoration: none;
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+  .board-item a:hover,
+  .board-item a:focus {
+    background-color: rgba(0,0,0, .1);
+    color: #666;
+  }
+  .board-item-title {
+    color: #fff;
+    font-size: 18px;
+    font-weight: 700;
+    padding: 10px;
+  }
+  .board-item a.new-board-btn {
+    display: table-cell;
+    vertical-align: middle;
+    text-align: center;
+    height: 100px;
+    width: inherit;
+    color: #888;
+    font-weight: 700;
+  }
+</style>
+
+~~~
+
+AddBoard.vue
+
+~~~javascript
+<template>
+  <Modal>
+    <div slot="header">
+      <h2>
+        Create new board
+        <a href="" class="modal-default-button"
+           @click.prevent="close">&times;</a>
+      </h2>
+    </div>
+    <div slot="body">
+      <form id="add-board-form"
+            @submit.prevent="addBoard">
+        <input class="form-control" type="text" v-model="input" ref="input">
+      </form>
+    </div>
+    <div slot="footer">
+      <button class="btn" :class="{'btn-success': valid}" type="submit"
+              form="add-board-form" :disabled="!valid">
+        Create Board
+      </button>
+    </div>
+  </Modal>
+</template>
+
+<script>
+  import Modal from './Modal.vue'
+
+  export default {
+    components: {
+      Modal
+    },
+    data() {
+      return {
+        input: '',
+        valid: false
+      }
+    },
+    watch: {
+      input(v) {
+        this.valid = v.trim().length > 0
+      }
+    },
+    mounted() {
+      this.$refs.input.focus()
+    },
+    methods: {
+      close() {
+        this.$emit('close')
+      },
+      addBoard() {
+        this.$emit('close')
+        this.$emit('submit', this.input)
+      }
+    }
+  }
+</script>
+
+<style>
+</style>
+
+~~~
+
+Modal.vue
+
+~~~javascript
+<template>
+  <traansition name="modal">
+    <div class="modal-mask">
+      <div class="modal-wrapper">
+        <div class="modal-container">
+
+          <div class="modal-header">
+            <slot name="header">
+              default header
+            </slot>
+          </div>
+
+          <div class="modal-body">
+            <slot name="body">
+              default body
+            </slot>
+          </div>
+
+          <div class="modal-footer">
+            <slot name="footer">
+              default footer
+              <button class="modal-default-button" @click="$emit('close')">
+                OK
+              </button>
+            </slot>
+          </div>
+        </div>
+      </div>
+    </div>
+  </traansition>
+</template>
+
+<script>
+    export default {
+        name: "Modal"
+    }
+</script>
+
+<style scoped>
+  .modal-mask {
+    position: fixed;
+    z-index: 9998;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, .5);
+    display: table;
+    transition: opacity .3s ease;
+  }
+
+  .modal-wrapper {
+    display: table-cell;
+    vertical-align: middle;
+  }
+
+  .modal-container {
+    width: 300px;
+    margin: 0px auto;
+    padding: 20px 30px;
+    background-color: #fff;
+    border-radius: 2px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, .33);
+    transition: all .3s ease;
+    font-family: Helvetica, Arial, sans-serif;
+  }
+
+  .modal-header h3 {
+    margin-top: 0;
+    color: #42b983;
+  }
+
+  .modal-body {
+    margin: 20px 0;
+  }
+
+  .modal-default-button {
+    float: right;
+  }
+</style>
+
+~~~
+
 
 
 
