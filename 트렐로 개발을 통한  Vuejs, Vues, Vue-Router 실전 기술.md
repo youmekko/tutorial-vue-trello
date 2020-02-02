@@ -2292,13 +2292,279 @@ AddBoard.vue
 
 
 
-
-
-
-
 ### 28강 액션(Action)
 
+액션은 변이와 유사합니다. 몇가지 다른 점은,
+
+- 상태를 변이시키는 대신 액션으로 변이에 대한 커밋을 합니다. **액션에서 직접 상태를 변경시키는 것이 아니라 액션에서 mutation을 호출하고 변이가 상태를 변경하도록 한다.**
+- 작업에는 임의의 비동기 작업이 포함될 수 있습니다. **mutation는 동기만 가능하다.**
+
+
+
+액션함수는 context라는 종합 객체를 받는다. 종합 객체라는 것은 이 안에 state와 getter같은 것들이 통합되어서 들어오기 때문이다.
+
+이렇게 등록한 액션은 스토어의 dispatch함수를 통해서 실행한다. mutation은 commit을 사용, 액션은 dispatch함수를 사용한다.
+
+
+
+action은 내부적으로는 변이함수를 실행하거나 api콜(비동기 작업)을 실행한다.
+
+
+
+src/store/index.js
+
+~~~javascript
+import Vue from 'vue';
+import Vuex from 'vuex'
+import api from '../api'
+
+Vue.use(Vuex)
+
+const store = new Vuex.Store({
+    state: {
+        isAddBoard: false
+    },
+    mutations: {
+        SET_IS_ADD_BOARD(state, toggle){
+            state.isAddBoard = toggle
+        }
+    },
+    actions: {
+        ADD_BOARD(_, {title}){
+            return api.board.create(title)
+        }
+    }
+})
+
+export default store;
+~~~
+
+
+
+AddBoard.vue
+
+~~~javascript
+<template>
+  <Modal>
+    <div slot="header">
+      <h2>
+        Create new board
+        <a href="" class="modal-default-button"
+           @click.prevent="SET_IS_ADD_BOARD(false)">&times;</a>
+      </h2>
+    </div>
+    <div slot="body">
+      <form id="add-board-form"
+            @submit.prevent="addBoard">
+        <input class="form-control" type="text" v-model="input" ref="input">
+      </form>
+    </div>
+    <div slot="footer">
+      <button class="btn" :class="{'btn-success': valid}" type="submit"
+              form="add-board-form" :disabled="!valid">
+        Create Board
+      </button>
+    </div>
+  </Modal>
+</template>
+
+<script>
+  import Modal from './Modal.vue'
+  import { mapMutations } from 'vuex'
+
+  export default {
+    components: {
+      Modal
+    },
+    data() {
+      return {
+        input: '',
+        valid: false
+      }
+    },
+    watch: {
+      input(v) {
+        this.valid = v.trim().length > 0
+      }
+    },
+    mounted() {
+      this.$refs.input.focus()
+    },
+    methods: {
+      ...mapMutations([
+        'SET_IS_ADD_BOARD'
+      ]),
+      addBoard() {
+        this.SET_IS_ADD_BOARD(false)
+        this.$emit('submit')
+        this.$store.dispatch('ADD_BOARD', this.input)
+      }
+    }
+  }
+</script>
+~~~
+
+
+
+Home.vue
+
+~~~javascript
+<template>
+  <div>
+    <div class="home-title">Personal Boards</div>
+    <div class="board-list" ref="boardList">
+      <div class="board-item" v-for="b in boards" :key="b.id"
+           :data-bgcolor="b.bgColor" ref="boardItem">
+        <router-link :to="`/b/${b.id}`">
+          <div class="board-item-title">{{b.title}}</div>
+        </router-link>
+      </div>
+      <div class="board-item board-item-new">
+        <a class="new-board-btn" href="" @click.prevent="SET_IS_ADD_BOARD(true)">
+          Create new board...
+        </a>
+      </div>
+    </div>
+    <AddBoard v-if="isAddBoard" @close="isAddBoard=false" @submit="onAddBoard"/>
+  </div>
+</template>
+
+<script>
+  import {board} from '../api'
+  import AddBoard from './AddBoard'
+  import { mapState, mapMutations } from 'vuex'
+
+  export default {
+    components:{
+      AddBoard
+    },
+    data() {
+      return {
+        loading: false,
+        boards: [],
+        error: ''
+      }
+    },
+    computed: {
+      ...mapState([
+      'isAddBoard'
+      ])
+    },
+    created() {
+      this.fetchData()
+    },
+    updated() {
+      this.$refs.boardItem.forEach(el => {
+        el.style.backgroundColor = el.dataset.bgcolor
+      })
+    },
+    methods: {
+      ...mapMutations([
+        'SET_IS_ADD_BOARD'
+      ]),
+      fetchData() {
+        this.loading = true
+        board.fetch()
+          .then(data => {
+            this.boards = data.list
+          })
+          .finally(_=> {
+            this.loading = false
+          })
+      },
+      onAddBoard(title){
+          this.fetchData()
+      }
+    }
+  }
+</script>
+~~~
+
+
+
+actions도 역시 헬퍼함수를 제공한다.   methods에서 사용할 수 있다.
+
+
+
+AddBoard.vue
+
+~~~javascript
+<template>
+  <Modal>
+    <div slot="header">
+      <h2>
+        Create new board
+        <a href="" class="modal-default-button"
+           @click.prevent="SET_IS_ADD_BOARD(false)">&times;</a>
+      </h2>
+    </div>
+    <div slot="body">
+      <form id="add-board-form"
+            @submit.prevent="addBoard">
+        <input class="form-control" type="text" v-model="input" ref="input">
+      </form>
+    </div>
+    <div slot="footer">
+      <button class="btn" :class="{'btn-success': valid}" type="submit"
+              form="add-board-form" :disabled="!valid">
+        Create Board
+      </button>
+    </div>
+  </Modal>
+</template>
+
+<script>
+  import Modal from './Modal.vue'
+  import { mapMutations, mapActions } from 'vuex'
+
+  export default {
+    components: {
+      Modal
+    },
+    data() {
+      return {
+        input: '',
+        valid: false
+      }
+    },
+    watch: {
+      input(v) {
+        this.valid = v.trim().length > 0
+      }
+    },
+    mounted() {
+      this.$refs.input.focus()
+    },
+    methods: {
+      ...mapMutations([
+        'SET_IS_ADD_BOARD'
+      ]),
+      ...mapActions([
+        'ADD_BOARD'
+      ]),
+      addBoard() {
+        this.SET_IS_ADD_BOARD(false)
+        this.ADD_BOARD({title: this.input})
+        this.$emit('submit')
+      }
+    }
+  }
+</script>
+
+<style>
+</style>
+
+~~~
+
+
+
+살펴본것 처럼 vuex에는 state, mutation, action이 있다. 이 외에도 Getters가 있다. Getter는 상태값을 받아오는 함수이다. 필요에 따라  사용하면 된다.
+
+
+
 ### 29강 Vuex적용 - 보드목록조회
+
+
 
 ### 30강 Vuex 적용 - 인증1
 

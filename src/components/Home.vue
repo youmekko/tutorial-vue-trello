@@ -62,9 +62,7 @@
           })
       },
       onAddBoard(title){
-        board.create(title).then(()=>{
           this.fetchData()
-        })
       }
     }
   }
