@@ -1791,13 +1791,255 @@ Modal.vue
 
 ~~~
 
+Home 컴포넌트에서 버튼을 클릭하면 (모달을 이용한) AddBoard컴포넌트가 만들어진다. 그리고 AddBoard에서 발생한 이벤트를 받아주는 것은 또 Hom 컴포넌트 이다. 
 
+즉, HomeComponent와 AddBoard컴포넌트 간에 중첩관계가 있다. 이렇게 중첩 관계가 하나 일때는 별 문제가 안되지만 UI가 복잡해질 수록 중첩관계는 더 깊어지게 된다. 그렇게 되면 데이터를 전달 해주는 단계가 많아지고 어플리케이션이 복잡해 질 수 있다.
+
+한가지 더 AddBoard에서 입력한 것을 HomeComponent에서 받아서 Api를 호출하고 있는데 그렇게 하지 않고, 바로 AddBoard에서 호출할 수 도 있다. 그것이 덜 복잡하고 단순해보인다.
+
+뿐만 아니라 서비스 전반에 사용될 수 있는 전역성격의 상태값이 있을 수 있다. 이러한 정보들을 좀 더 체계적으로 관리할 수 없을까?
 
 
 
 ### 25강 Vuex
 
+전역 상태를 관리할 수 있는 Vuex라는 라이브러리를 살펴보자. 
+
+Vuex 정의 = 상태 관리 패턴 + 라이브러리
+
+어플리케이션의 모든 컴포넌트에 대한 종합 집중식 저장소 역할을 하며 예측 가능한 방식으로 상태를 변경할 수 있다. 그래서 위의 예제까지는 컴포넌트를 만들 때 컴포넌트 자체에 상태를 가지고 있었다. 하지만 Vuex는 모든 컴포넌트가 공유할 수 있는 종합 집중식 저장소를 만들 수 있다.
+
+
+
+* 상태 (State) : 앱을 작동하는 원본 소스
+* 뷰 : 상태의 선언적 맵핑
+* 액션 : 뷰에서 사용자 입력에 대한 반응적으로 상태를 바꾸는 방법이다.
+
+
+
+<단방향 데이터 흐름>
+
+![Screen Shot 2020-02-02 at 6.08.07 PM](/Users/youme/Desktop/Screen Shot 2020-02-02 at 6.08.07 PM.png)
+
+그러나 공통의 상태를 공유하는 여러 컴포넌트가 있는 경우 단순함이 빠르게 저하된다.
+
+1. 여러 뷰는 같은 상태에 의존한다. 
+2. 서로 다른 뷰의 작업은 동일한 상태를 반영해야 할 수 있다.
+
+첫번째 문제의 경우, 지나치게 중첩된 컴포넌트를 통과하는 prop는 장황할 수 있으며 형제 컴포넌트에서는 작동하지 않습니다. 두번째 문제의 경우 직접 부모/자식 인스턴스를 참조하거나 이벤트를 통해 상태의 여러 복사본을 변경 및 동기화 하려는 등의 해결 방법을 사용해야 합니다. 이러한 패턴은 모두 부서지기 쉽고 유지보수가 불가능한 코드로 빠르게 변경됩니다.
+
+![image-20200202181347950](/Users/youme/Library/Application Support/typora-user-images/image-20200202181347950.png)
+
 ### 26강 상태(State)
+
+~~~javascript
+npm i vuex
+~~~
+
+vuex는 단일 상태 트리를 사용한다. 즉, 하나의 상태를 가지고 있고 그상태는 트리형태로 되어있다. 이 단일 객체는 모든 애플리케이션 수준의 상태를 포함하며 "원본 소스" 역할을 합니다. 이는 각 애플리케이션마다 하나의 저장소만 갖게 된다는 것을 의미합니다. 단일 상태 트리를 사용하면 특정 상태를 쉽게 찾을 수 있으므로 디버깅을 위해 현재 앱 상태의 스냅 샷을 쉽게 가져올 수 있습니다.
+
+
+
+src/store/index.js
+
+~~~javascript
+import Vue from 'vue';
+import Vuex from 'vuex'
+
+Vue.use(Vuex)
+
+const store = new Vuex.Store({
+    state: {
+        isAddBoard: false
+    }
+})
+
+export default store;
+~~~
+
+
+
+src/main.js
+
+~~~javascript
+import Vue from 'vue'
+import router from './router'
+import App from './App.vue'
+import store from './store'
+
+new Vue({
+  el: '#app',
+  router,
+  store,
+  ///entry point
+  render: h => h(App)
+})
+~~~
+
+
+
+home.vue
+
+~~~javascript 
+<template>
+  <div>
+    <div class="home-title">Personal Boards</div>
+    <div class="board-list" ref="boardList">
+      <div class="board-item" v-for="b in boards" :key="b.id"
+           :data-bgcolor="b.bgColor" ref="boardItem">
+        <router-link :to="`/b/${b.id}`">
+          <div class="board-item-title">{{b.title}}</div>
+        </router-link>
+      </div>
+      <div class="board-item board-item-new">
+        <a class="new-board-btn" href="" @click.prevent="addBoard">
+          Create new board...
+        </a>
+      </div>
+    </div>
+    <AddBoard v-if="isAddBoard" @close="isAddBoard=false" @submit="onAddBoard"/>
+  </div>
+</template>
+
+<script>
+  import {board} from '../api'
+  import AddBoard from './AddBoard'
+
+  export default {
+    components:{
+      AddBoard
+    },
+    data() {
+      return {
+        loading: false,
+        boards: [],
+        error: ''
+      }
+    },
+    computed: {
+      isAddboard(){
+        return this.$store.state.isAddBoard;
+      }
+    },
+    created() {
+      this.fetchData()
+    },
+    updated() {
+      this.$refs.boardItem.forEach(el => {
+        el.style.backgroundColor = el.dataset.bgcolor
+      })
+    },
+    methods: {
+      fetchData() {
+        this.loading = true
+        board.fetch()
+          .then(data => {
+            this.boards = data.list
+          })
+          .finally(_=> {
+            this.loading = false
+          })
+      },
+      addBoard() {
+        this.isAddBoard = true;
+      },
+      onAddBoard(title){
+        board.create(title).then(()=>{
+          this.fetchData()
+        })
+      }
+    }
+  }
+</script>
+~~~
+
+mapState 라는 헬퍼 함수가 있다. 
+
+컴포넌트가 여러 저장소 상태 속성이나 getter를 사용해야하는 경우 계산된 속성을 모두 선언하면 반복적이고 장황해집니다. 이를 처리하기 위해 우리는 계산된 getter 함수를 생성하는 `mapState` 헬퍼를 사용하여 키(코드) 입력을 줄일 수 있습니다.
+
+
+
+Home.vue
+
+~~~javascript
+<template>
+  <div>
+    <div class="home-title">Personal Boards</div>
+    <div class="board-list" ref="boardList">
+      <div class="board-item" v-for="b in boards" :key="b.id"
+           :data-bgcolor="b.bgColor" ref="boardItem">
+        <router-link :to="`/b/${b.id}`">
+          <div class="board-item-title">{{b.title}}</div>
+        </router-link>
+      </div>
+      <div class="board-item board-item-new">
+        <a class="new-board-btn" href="" @click.prevent="addBoard">
+          Create new board...
+        </a>
+      </div>
+    </div>
+    <AddBoard v-if="isAddBoard" @close="isAddBoard=false" @submit="onAddBoard"/>
+  </div>
+</template>
+
+<script>
+  import {board} from '../api'
+  import AddBoard from './AddBoard'
+  import { mapState } from 'vuex'
+
+  export default {
+    components:{
+      AddBoard
+    },
+    data() {
+      return {
+        loading: false,
+        boards: [],
+        error: ''
+      }
+    },
+    computed: {
+      ...mapState([
+      'isAddBoard'
+      ])
+    },
+    created() {
+      this.fetchData()
+    },
+    updated() {
+      this.$refs.boardItem.forEach(el => {
+        el.style.backgroundColor = el.dataset.bgcolor
+      })
+    },
+    methods: {
+      fetchData() {
+        this.loading = true
+        board.fetch()
+          .then(data => {
+            this.boards = data.list
+          })
+          .finally(_=> {
+            this.loading = false
+          })
+      },
+      addBoard() {
+        // this.isAddBoard = true;
+      },
+      onAddBoard(title){
+        board.create(title).then(()=>{
+          this.fetchData()
+        })
+      }
+    }
+  }
+</script>
+~~~
+
+위 처럼 사용할 수 있다. 하지만 computed 속성에 mapState결과값을 설정해버리면 따로 computed 속성을 추가할 순 없다. 그래서 ES6의 해체문법(Sparead Operator)을 써줘서 다른 computed속성을 추가해서 사용 할 수 있다.
+
+
+
+
 
 ### 27강 변이(Mutation)
 
