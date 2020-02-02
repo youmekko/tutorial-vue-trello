@@ -2039,9 +2039,262 @@ Home.vue
 
 
 
-
-
 ### 27강 변이(Mutation)
+
+Vuex 저장소에서 실제로 상태를 변경하는 유일한 방법은 변이하는 것이다. Vuex의 변이는 이벤트와 매우 유사하다. 각 변이에는 타입 문자열 핸들러가 있다. 핸들러 함수는 실제 상태 수정을 하는 곳이며 첫번째 전달인자로 상태를 받는다.
+
+
+
+src/store/index.js
+
+~~~javascript
+import Vue from 'vue';
+import Vuex from 'vuex'
+
+Vue.use(Vuex)
+
+const store = new Vuex.Store({
+    state: {
+        isAddBoard: false
+    },
+    mutations: {
+        SET_IS_ADD_BOARD(state, toggle){
+            state.isAddBoard = toggle
+        }
+    }
+})
+
+export default store;
+~~~
+
+
+
+Home.vue
+
+~~~javascript
+<template>
+  <div>
+    <div class="home-title">Personal Boards</div>
+    <div class="board-list" ref="boardList">
+      <div class="board-item" v-for="b in boards" :key="b.id"
+           :data-bgcolor="b.bgColor" ref="boardItem">
+        <router-link :to="`/b/${b.id}`">
+          <div class="board-item-title">{{b.title}}</div>
+        </router-link>
+      </div>
+      <div class="board-item board-item-new">
+        <a class="new-board-btn" href="" @click.prevent="addBoard">
+          Create new board...
+        </a>
+      </div>
+    </div>
+    <AddBoard v-if="isAddBoard" @close="isAddBoard=false" @submit="onAddBoard"/>
+  </div>
+</template>
+
+<script>
+  import {board} from '../api'
+  import AddBoard from './AddBoard'
+  import { mapState } from 'vuex'
+
+  export default {
+    components:{
+      AddBoard
+    },
+    data() {
+      return {
+        loading: false,
+        boards: [],
+        error: ''
+      }
+    },
+    computed: {
+      ...mapState([
+      'isAddBoard'
+      ])
+    },
+    created() {
+      this.fetchData()
+    },
+    updated() {
+      this.$refs.boardItem.forEach(el => {
+        el.style.backgroundColor = el.dataset.bgcolor
+      })
+    },
+    methods: {
+      fetchData() {
+        this.loading = true
+        board.fetch()
+          .then(data => {
+            this.boards = data.list
+          })
+          .finally(_=> {
+            this.loading = false
+          })
+      },
+      addBoard() {
+        //mutation을 실행시키려면 store의 commit 함수를 사용해야 한다.
+        this.$store.commit('SET_IS_ADD_BOARD', true)
+      },
+      onAddBoard(title){
+        board.create(title).then(()=>{
+          this.fetchData()
+        })
+      }
+    }
+  }
+</script>
+~~~
+
+mapState처럼 mutation도 헬퍼함수가 있다. computed 속성이 아닌 methods속성에 추가할 수 있다.
+
+
+
+Home.vue
+
+~~~javascript
+<template>
+  <div>
+    <div class="home-title">Personal Boards</div>
+    <div class="board-list" ref="boardList">
+      <div class="board-item" v-for="b in boards" :key="b.id"
+           :data-bgcolor="b.bgColor" ref="boardItem">
+        <router-link :to="`/b/${b.id}`">
+          <div class="board-item-title">{{b.title}}</div>
+        </router-link>
+      </div>
+      <div class="board-item board-item-new">
+        <a class="new-board-btn" href="" @click.prevent="SET_IS_ADD_BOARD(true)">
+          Create new board...
+        </a>
+      </div>
+    </div>
+    <AddBoard v-if="isAddBoard" @close="isAddBoard=false" @submit="onAddBoard"/>
+  </div>
+</template>
+
+<script>
+  import {board} from '../api'
+  import AddBoard from './AddBoard'
+  import { mapState, mapMutations } from 'vuex'
+
+  export default {
+    components:{
+      AddBoard
+    },
+    data() {
+      return {
+        loading: false,
+        boards: [],
+        error: ''
+      }
+    },
+    computed: {
+      ...mapState([
+      'isAddBoard'
+      ])
+    },
+    created() {
+      this.fetchData()
+    },
+    updated() {
+      this.$refs.boardItem.forEach(el => {
+        el.style.backgroundColor = el.dataset.bgcolor
+      })
+    },
+    methods: {
+      ...mapMutations([
+        'SET_IS_ADD_BOARD'
+      ]),
+      fetchData() {
+        this.loading = true
+        board.fetch()
+          .then(data => {
+            this.boards = data.list
+          })
+          .finally(_=> {
+            this.loading = false
+          })
+      },
+      onAddBoard(title){
+        board.create(title).then(()=>{
+          this.fetchData()
+        })
+      }
+    }
+  }
+</script>
+~~~
+
+ 
+
+AddBoard.vue
+
+~~~javascript
+<template>
+  <Modal>
+    <div slot="header">
+      <h2>
+        Create new board
+        <a href="" class="modal-default-button"
+           @click.prevent="SET_IS_ADD_BOARD(false)">&times;</a>
+      </h2>
+    </div>
+    <div slot="body">
+      <form id="add-board-form"
+            @submit.prevent="addBoard">
+        <input class="form-control" type="text" v-model="input" ref="input">
+      </form>
+    </div>
+    <div slot="footer">
+      <button class="btn" :class="{'btn-success': valid}" type="submit"
+              form="add-board-form" :disabled="!valid">
+        Create Board
+      </button>
+    </div>
+  </Modal>
+</template>
+
+<script>
+  import Modal from './Modal.vue'
+  import { mapMutations } from 'vuex'
+
+  export default {
+    components: {
+      Modal
+    },
+    data() {
+      return {
+        input: '',
+        valid: false
+      }
+    },
+    watch: {
+      input(v) {
+        this.valid = v.trim().length > 0
+      }
+    },
+    mounted() {
+      this.$refs.input.focus()
+    },
+    methods: {
+      ...mapMutations([
+        'SET_IS_ADD_BOARD'
+      ]),
+      addBoard() {
+        this.SET_IS_ADD_BOARD(false)
+        this.$emit('submit', this.input)
+      }
+    }
+  }
+</script>
+~~~
+
+
+
+
+
+
 
 ### 28강 액션(Action)
 
