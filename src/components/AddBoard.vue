@@ -6,7 +6,7 @@
         <a href="" class="modal-default-button"
            @click.prevent="SET_IS_ADD_BOARD(false)">&times;</a>
       </h2>
-    </div>
+    </div>a
     <div slot="body">
       <form id="add-board-form"
             @submit.prevent="addBoard">

@@ -2564,9 +2564,266 @@ AddBoard.vue
 
 ### 29강 Vuex적용 - 보드목록조회
 
+src/store/index.js
+
+~~~javascript
+import Vue from 'vue';
+import Vuex from 'vuex'
+import * as api from '../api'
+
+Vue.use(Vuex)
+
+const store = new Vuex.Store({
+    state: {
+        isAddBoard: false,
+        boards: []
+    },
+    mutations: {
+        SET_IS_ADD_BOARD(state, toggle){ 
+            state.isAddBoard = toggle
+        },
+        SET_BOARDS(state, boards){
+            state.boards = boards
+        }
+    },
+    actions: {
+        ADD_BOARD(_, {title}){
+            return api.board.create(title)
+        },
+        /* actions의 첫번째 인자로는 컨텍스트 객체가 오는데 컨텍스트 객체 중에 commit 이라는 함수를 쓴다.
+        내부적으로 SET_BOARDS를 이용해 boards 상태를 갱신하도록 한다. */
+        FETCH_BOARDS({ commit }){
+            return api.board.fetch().then(data => {
+                commit('SET_BOARDS', data.list)
+            })
+        }
+    }
+})
+
+export default store;
+~~~
+
+
+
+Home.vue
+
+~~~javascript
+<template>
+  <div>
+    <div class="home-title">Personal Boards</div>
+    <div class="board-list" ref="boardList">
+      <div class="board-item" v-for="b in boards" :key="b.id"
+           :data-bgcolor="b.bgColor" ref="boardItem">
+        <router-link :to="`/b/${b.id}`">
+          <div class="board-item-title">{{b.title}}</div>
+        </router-link>
+      </div>
+      <div class="board-item board-item-new">
+        <a class="new-board-btn" href="" @click.prevent="SET_IS_ADD_BOARD(true)">
+          Create new board...
+        </a>
+      </div>
+    </div>
+    <AddBoard v-if="isAddBoard"/>
+  </div>
+</template>
+
+<script>
+  import {board} from '../api'
+  import AddBoard from './AddBoard'
+  import { mapState, mapMutations, mapActions} from 'vuex'
+
+  export default {
+    components:{
+      AddBoard
+    },
+    data() {
+      return {
+        loading: false,
+        error: ''
+      }
+    },
+    computed: {
+      ...mapState([
+      'isAddBoard',
+      'boards'
+      ])
+    },
+    created() {
+      this.fetchData()
+    },
+    updated() {
+      this.$refs.boardItem.forEach(el => {
+        el.style.backgroundColor = el.dataset.bgcolor
+      })
+    },
+    methods: {
+      ...mapMutations([
+        'SET_IS_ADD_BOARD'
+      ]),
+      ...mapActions([
+        'FETCH_BOARDS'
+      ]),
+      fetchData() {
+        this.loading = true
+        this.FETCH_BOARDS().finally(_=> {
+          this.loading = false
+        })
+      }
+    }
+  }
+</script>
+~~~
+
+
+
+AddBoard.vue
+
+~~~Javascript
+<template>
+  <Modal>
+    <div slot="header">
+      <h2>
+        Create new board
+        <a href="" class="modal-default-button"
+           @click.prevent="SET_IS_ADD_BOARD(false)">&times;</a>
+      </h2>
+    </div>a
+    <div slot="body">
+      <form id="add-board-form"
+            @submit.prevent="addBoard">
+        <input class="form-control" type="text" v-model="input" ref="input">
+      </form>
+    </div>
+    <div slot="footer">
+      <button class="btn" :class="{'btn-success': valid}" type="submit"
+              form="add-board-form" :disabled="!valid">
+        Create Board
+      </button>
+    </div>
+  </Modal>
+</template>
+
+<script>
+  import Modal from './Modal.vue'
+  import { mapMutations, mapActions } from 'vuex'
+
+  export default {
+    components: {
+      Modal
+    },
+    data() {
+      return {
+        input: '',
+        valid: false
+      }
+    },
+    watch: {
+      input(v) {
+        this.valid = v.trim().length > 0
+      }
+    },
+    mounted() {
+      this.$refs.input.focus()
+    },
+    methods: {
+      ...mapMutations([
+        'SET_IS_ADD_BOARD'
+      ]),
+      ...mapActions([
+        'ADD_BOARD',
+        'FETCH_BOARDS'
+      ]),
+      addBoard() {
+        this.SET_IS_ADD_BOARD(false)
+        this.ADD_BOARD({title: this.input}).then(()=>{
+          this.FETCH_BOARDS()
+        })
+      }
+    }
+  }
+</script>
+
+<style>
+</style>
+
+~~~
+
 
 
 ### 30강 Vuex 적용 - 인증1
+
+현재는 인증과 관련해서 플레이어가 총 4개나 있다. (api 모듈, 라우터 모듈, 로그인 컴포넌트,  내비게이션 컴포넌트) 이것들을 전부 vuex store로 옮겨보자.
+
+~~~javascript
+import Vue from 'vue';
+import Vuex from 'vuex'
+import * as api from '../api'
+
+Vue.use(Vuex)
+
+const store = new Vuex.Store({
+    state: {
+        isAddBoard: false,
+        boards: [],
+        token: null
+    },
+    //getter는 vue컴포넌트의 computed 속성과 유사하다.
+    getters: {
+        isAuth (state) {
+            return !!state.token
+        }
+    },
+    mutations: {
+        SET_IS_ADD_BOARD(state, toggle){ 
+            state.isAddBoard = toggle
+        },
+        SET_BOARDS(state, boards){
+            state.boards = boards
+        },
+        LOGIN (state, token) {
+            if(!token) return
+            state.token = token
+            localStorage.setItem('token', token)
+            api.setAuthInHeader(token)
+        },
+        LOGOUT (state) {
+            state.token = null
+            delete localStorage.token
+            api.setAuthInHeader(null)
+        }
+    },
+    actions: {
+        ADD_BOARD(_, {title}){
+            return api.board.create(title)
+        },
+        /* actions의 첫번째 인자로는 컨텍스트 객체가 오는데 컨텍스트 객체 중에 commit 이라는 함수를 쓴다.
+        내부적으로 SET_BOARDS를 이용해 boards 상태를 갱신하도록 한다. */
+        FETCH_BOARDS({ commit }){
+            return api.board.fetch().then(data => {
+                commit('SET_BOARDS', data.list)
+            })
+        },
+        LOGIN ({ commit}, { email, password}) {
+            return api.auth.login(email, password)
+                .then(({accessToken})=> commit('LOGIN', accessToken))
+        }
+    }
+})
+
+const { token } = localStorage
+store.commit('LOGIN', token)
+
+export default store;
+~~~
+
+
+
+
+
+
+
+
 
 ### 31강 Vuex 적용 - 인증2
 
