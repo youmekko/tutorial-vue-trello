@@ -9,7 +9,10 @@
 </template>
 
 <script>
+import { mapActions } from 'vuex'
+
 export default {
+    props : ['listId'],
     data() {
         return {
             inputTitle: ''
@@ -25,8 +28,14 @@ export default {
         this.setupClickOutSide(this.$el)    
     },
     methods: {
+        ...mapActions([
+        'ADD_CARD'
+        ]),
         onSubmit() {
-            console.log('onSubmit')
+            if (this.invalidInput) return
+            const { inputTitle, listId } = this
+            this.ADD_CARD({title: inputTitle, listId })
+                .finally(() => this.inputTitle = '')
         },
         setupClickOutSide(el) {
             document.querySelector('body').addEventListener('click', e => {
