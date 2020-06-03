@@ -1,40 +1,30 @@
 <template>
   <Modal>
-    Card
-    <div v-if="loading">loading card...</div>
-    <div v-else>
-      <div>cid: {{cid}}</div>
+    <div slot="body">
+      {{ card }}
     </div>
   </Modal>
 </template>
 
 <script>
   import Modal from './Modal'
+  import { mapActions, mapState } from 'vuex'
 
   export default {
     components: { Modal },
-    data(){
-      return {
-        cid: 0,
-        loading: false
-      }
+    computed: {
+      ...mapState({
+        card: 'card'
+      })
     },
-    watch:{
-      /***/
-      '$route': {
-        handler : 'fetchData',
-        immediate: true
-      }
+    create() {
+      const id = this.$route.params.cid
+      this.FETCH_CARD({id})
     },
     methods: {
-      fetchData(){
-        this.loading = true;
-        setTimeout(()=>{
-          this.cid = this.$route.params.cid;
-          this.loading = false;
-        },500)
-
-      }
+      ...mapActions([
+        'FETCH_CARD'
+      ])
     }
   }
 </script>

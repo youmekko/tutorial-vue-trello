@@ -34,7 +34,7 @@ export default {
         onSubmit() {
             if (this.invalidInput) return
             const { inputTitle, listId } = this
-            this.ADD_CARD({title: inputTitle, listId })
+            this.ADD_CARD({ title : inputTitle, listId })
                 .finally(() => this.inputTitle = '')
         },
         setupClickOutSide(el) {

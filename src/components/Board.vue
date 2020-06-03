@@ -3,7 +3,7 @@
     <div class="board-wrapper">
       <div class="board">
         <div class="baord-header">
-          <span class="board-title">{{board.title}}</span>
+          <span class="board-title">{{ board.title }}</span>
         </div>
         <div class="list-section-wrapper">
           <div class="list-section">
