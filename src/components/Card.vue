@@ -17,7 +17,7 @@
         card: 'card'
       })
     },
-    create() {
+    created() {
       const id = this.$route.params.cid
       this.FETCH_CARD({id})
     },

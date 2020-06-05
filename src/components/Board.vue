@@ -39,12 +39,7 @@
     },
     //Board가 생성될 때 실행되는 훅이 Create
     created(){
-
-      this.fetch();
-
-      //$route 객체 로그로 찍어보자
-      console.log("@@@route", this.$route);
-      console.log("@@@bid", this.$route.params.bid);
+      this.fetch()
     },
 
     methods: {
