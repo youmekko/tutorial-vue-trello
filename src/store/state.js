@@ -6,7 +6,8 @@ const state =  {
     board: null,
     card: {},
     bodyColor: '#fff',
-    navbarColor: '#026aa7'
+    navbarColor: '#026aa7',
+    isShowBoardSettings: false
 }
 
 export default state
