@@ -11,6 +11,8 @@
   },
   "dependencies": {
     "axios": "^0.18.1",
+    "dragula": "^3.7.2",
+    "dragular": "^4.6.0",
     "vue": "^2.5.11",
     "vue-router": "^3.0.2",
     "vuex": "^3.1.2"
@@ -33,6 +35,6 @@
     "webpack": "^4.41.5",
     "webpack-cli": "^3.3.10",
     "webpack-dev-middleware": "^3.7.2",
-    "webpack-dev-server": "^3.10.2"
+    "webpack-dev-server": "^3.11.0"
   }
 }
