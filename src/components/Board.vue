@@ -19,7 +19,7 @@
 </template>
 
 <script>
-import { mapState, mapActions } from 'vuex';
+import { mapState, mapActions, mapMutations } from 'vuex';
 import List from './List.vue'
 import dragger from '../utils/dragger'
 
@@ -41,7 +41,9 @@ export default {
   },
   //Board가 생성될 때 실행되는 훅이 Create
   created() {
-    this.fetch()
+    this.fetch().then(_=> {
+      this.SET_THEME(this.board.bgColor)
+    })
   },
   updated() {
     this.setCardDraggable()
@@ -51,11 +53,14 @@ export default {
       'FETCH_BOARD',
       'UPDATE_CARD'
     ]),
+    ...mapMutations([
+      'SET_THEME'
+    ]),
     //백엔드 API 호출 데이터 요청하는 메서드
     fetch() {
       this.loading = true;
 
-      this.FETCH_BOARD({ id : this.$route.params.bid })
+      return this.FETCH_BOARD({ id : this.$route.params.bid })
         .then(() => this.loading = false)
     },
     setCardDraggable() {
