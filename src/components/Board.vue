@@ -2,7 +2,7 @@
   <div>
     <div class="board-wrapper">
       <div class="board">
-        <div class="baord-header">
+        <div class="board-header">
           <span class="board-title">{{ board.title }}</span>
           <a class="board-header-btn show-menu" href="" @click.prevent="onShowSettings">
             ...Show Menu
