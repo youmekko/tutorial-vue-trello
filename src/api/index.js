@@ -40,6 +40,16 @@ export const board = {
     return request('delete', `/boards/${id}`)
   }
 }
+
+export const list = {
+  create(payload) {
+    return request('post', `/lists`, payload)
+  },
+  update(id, payload) {
+    return request('put', `/lists/${id}`, payload)
+  }
+}
+
 export const auth = {
   login(email, password) {
     return request('post', '/login', {email, password})
